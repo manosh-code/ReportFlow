@@ -124,6 +124,23 @@ export type Database = {
         };
         Relationships: [];
       };
+      stripe_webhook_events: {
+        Row: {
+          id: string;
+          type: string;
+          processed_at: string;
+        };
+        Insert: {
+          id: string;
+          type: string;
+          processed_at?: string;
+        };
+        Update: {
+          type?: string;
+          processed_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       create_organization: {
