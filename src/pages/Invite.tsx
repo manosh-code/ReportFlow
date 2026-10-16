@@ -56,6 +56,11 @@ export function InvitePage() {
     }
   }
 
+  const authHref = `/auth?mode=signup&next=${encodeURIComponent(`/invite/${token}`)}&email=${encodeURIComponent(preview?.email ?? "")}`;
+  const signedInMismatch =
+    Boolean(user && preview) &&
+    user!.email?.toLowerCase() !== preview!.email.toLowerCase();
+
   return (
     <div className="flex min-h-screen items-center justify-center px-6">
       <Seo
@@ -79,16 +84,19 @@ export function InvitePage() {
           {preview?.accepted ? (
             <p className="text-sm text-muted-foreground">This invite was already accepted.</p>
           ) : null}
-          {preview && !preview.expired && !preview.accepted ? (
+          {signedInMismatch ? (
+            <p className="text-sm text-destructive">
+              This invite is for {preview?.email}. Sign out and continue with that address.
+            </p>
+          ) : null}
+          {preview && !preview.expired && !preview.accepted && !signedInMismatch ? (
             user ? (
               <Button className="w-full" disabled={busy} onClick={accept}>
                 Join {preview.organization_name}
               </Button>
             ) : (
               <Button className="w-full" asChild>
-                <Link to={`/auth?next=${encodeURIComponent(`/invite/${token}`)}`}>
-                  Sign in to accept
-                </Link>
+                <Link to={authHref}>Sign in to accept</Link>
               </Button>
             )
           ) : null}

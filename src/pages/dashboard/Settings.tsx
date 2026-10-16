@@ -28,13 +28,18 @@ export function SettingsPage() {
   async function onSave(event: FormEvent) {
     event.preventDefault();
     if (!org || !canEdit) return;
+    const domainNorm = domain.trim().toLowerCase();
+    if (autoJoin && !domainNorm) {
+      toast.error("Add a company domain before enabling auto-join.");
+      return;
+    }
     setBusy(true);
     try {
       const { error } = await supabase
         .from("organizations")
         .update({
           name,
-          company_domain: domain.trim() ? domain.trim().toLowerCase() : null,
+          company_domain: domainNorm || null,
           domain_auto_join: autoJoin,
         })
         .eq("id", org.id);
@@ -97,7 +102,7 @@ export function SettingsPage() {
               <Switch
                 checked={autoJoin}
                 onCheckedChange={setAutoJoin}
-                disabled={!canEdit}
+                disabled={!canEdit || !domain.trim()}
               />
             </div>
             {canEdit ? (

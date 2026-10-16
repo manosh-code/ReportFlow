@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useSearchParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { OrgProvider } from "@/hooks/useOrg";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
@@ -14,9 +14,13 @@ import { ClientsPage } from "@/pages/dashboard/Clients";
 import { ReportsPage } from "@/pages/dashboard/Reports";
 import { TeamPage } from "@/pages/dashboard/Team";
 import { SettingsPage } from "@/pages/dashboard/Settings";
+import { safeAppPath } from "@/lib/utils";
 
 function AuthRedirect() {
   const { user, loading } = useAuth();
+  const [params] = useSearchParams();
+  const next = safeAppPath(params.get("next"));
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center text-muted-foreground">
@@ -24,7 +28,7 @@ function AuthRedirect() {
       </div>
     );
   }
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to={next} replace />;
   return <AuthPage />;
 }
 

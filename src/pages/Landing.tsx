@@ -57,9 +57,11 @@ export function LandingPage() {
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" asChild>
-                <Link to="/auth">Sign in</Link>
-              </Button>
+              {user ? null : (
+                <Button size="lg" variant="outline" asChild>
+                  <Link to="/auth">Sign in</Link>
+                </Button>
+              )}
             </div>
           </div>
           <div className="overflow-hidden rounded-lg border border-border">
@@ -67,6 +69,8 @@ export function LandingPage() {
               src={hero}
               alt="Editorial desk with campaign reports under warm amber light"
               className="h-full w-full object-cover"
+              width={1600}
+              height={900}
             />
           </div>
         </section>
@@ -103,6 +107,12 @@ export function LandingPage() {
           </div>
         </section>
       </main>
+      <footer className="border-t border-border px-6 py-8 text-sm text-muted-foreground">
+        <div className="mx-auto flex max-w-6xl flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <p className="font-display text-lg text-paper">ReportFlow</p>
+          <p>Multi-tenant reporting for agencies. Stripe billing ships next.</p>
+        </div>
+      </footer>
     </div>
   );
 }

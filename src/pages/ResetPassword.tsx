@@ -9,13 +9,19 @@ import { Seo } from "@/components/seo/Seo";
 import { useAuth } from "@/hooks/useAuth";
 
 export function ResetPasswordPage() {
-  const { updatePassword, user } = useAuth();
+  const { updatePassword, user, recovery, loading } = useAuth();
   const navigate = useNavigate();
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
+  const canUpdate = Boolean(user) && !loading;
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
+    if (password !== confirm) {
+      toast.error("Passwords do not match.");
+      return;
+    }
     setBusy(true);
     try {
       await updatePassword(password);
@@ -39,8 +45,10 @@ export function ResetPasswordPage() {
         <CardHeader>
           <CardTitle>New password</CardTitle>
           <CardDescription>
-            {user
-              ? "Choose a password at least 8 characters long."
+            {canUpdate
+              ? recovery
+                ? "This session is from a reset email. Choose a password at least 8 characters long."
+                : "Choose a password at least 8 characters long."
               : "Open this page from the reset email so we can verify the session."}
           </CardDescription>
         </CardHeader>
@@ -51,14 +59,28 @@ export function ResetPasswordPage() {
               <Input
                 id="password"
                 type="password"
+                autoComplete="new-password"
                 minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                disabled={!user}
+                disabled={!canUpdate}
               />
             </div>
-            <Button className="w-full" disabled={busy || !user} type="submit">
+            <div className="space-y-2">
+              <Label htmlFor="confirm">Confirm password</Label>
+              <Input
+                id="confirm"
+                type="password"
+                autoComplete="new-password"
+                minLength={8}
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                required
+                disabled={!canUpdate}
+              />
+            </div>
+            <Button className="w-full" disabled={busy || !canUpdate} type="submit">
               Update password
             </Button>
           </form>

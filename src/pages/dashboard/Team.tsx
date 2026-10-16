@@ -199,16 +199,31 @@ export function TeamPage() {
                 <p className="py-3 text-sm text-muted-foreground">None pending.</p>
               ) : (
                 invites.map((invite) => (
-                  <div key={invite.id} className="flex items-center justify-between py-3 text-sm">
+                  <div key={invite.id} className="flex items-center justify-between gap-3 py-3 text-sm">
                     <div>
                       <p>{invite.email}</p>
                       <p className="text-xs text-muted-foreground">
                         {invite.role} · expires {new Date(invite.expires_at).toLocaleDateString()}
                       </p>
                     </div>
-                    <Button size="sm" variant="outline" onClick={() => revoke(invite.id)}>
-                      Revoke
-                    </Button>
+                    <div className="flex shrink-0 gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const link = `${window.location.origin}/invite/${invite.token}`;
+                          navigator.clipboard.writeText(link).then(
+                            () => toast.success("Invite link copied."),
+                            () => toast.message(link),
+                          );
+                        }}
+                      >
+                        Copy link
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => revoke(invite.id)}>
+                        Revoke
+                      </Button>
+                    </div>
                   </div>
                 ))
               )}

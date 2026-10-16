@@ -15,6 +15,7 @@ type AuthContextValue = {
   user: User | null;
   loading: boolean;
   configured: boolean;
+  recovery: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<string | null>;
   signInWithGoogle: () => Promise<void>;
@@ -25,9 +26,16 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function isRecoveryHash() {
+  return window.location.hash.includes("type=recovery");
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [recovery, setRecovery] = useState(() =>
+    typeof window === "undefined" ? false : isRecoveryHash(),
+  );
 
   useEffect(() => {
     if (!isCloudConfigured) {
@@ -42,8 +50,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => {
+    const { data } = supabase.auth.onAuthStateChange((event, next) => {
       setSession(next);
+      if (event === "PASSWORD_RECOVERY" || isRecoveryHash()) {
+        setRecovery(true);
+        if (window.location.pathname !== "/reset-password") {
+          window.location.replace(`/reset-password${window.location.hash}`);
+        }
+      }
+      if (event === "SIGNED_IN" && !isRecoveryHash()) {
+        setRecovery(false);
+      }
+      if (event === "SIGNED_OUT") {
+        setRecovery(false);
+      }
     });
 
     return () => {
@@ -53,7 +73,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
     if (error) throw error;
   }, []);
 
@@ -61,11 +84,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (email: string, password: string, fullName: string) => {
       const redirectTo = `${window.location.origin}/auth`;
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: email.trim().toLowerCase(),
         password,
         options: {
           emailRedirectTo: redirectTo,
-          data: { full_name: fullName },
+          data: { full_name: fullName.trim() },
         },
       });
       if (error) throw error;
@@ -82,26 +105,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth`,
+        queryParams: { prompt: "select_account" },
       },
     });
     if (error) throw error;
   }, []);
 
   const resetPassword = useCallback(async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      email.trim().toLowerCase(),
+      { redirectTo: `${window.location.origin}/reset-password` },
+    );
     if (error) throw error;
   }, []);
 
   const updatePassword = useCallback(async (password: string) => {
     const { error } = await supabase.auth.updateUser({ password });
     if (error) throw error;
+    setRecovery(false);
   }, []);
 
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+    localStorage.removeItem("reportflow.activeOrg");
   }, []);
 
   const value = useMemo<AuthContextValue>(
@@ -110,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: session?.user ?? null,
       loading,
       configured: isCloudConfigured,
+      recovery,
       signIn,
       signUp,
       signInWithGoogle,
@@ -120,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [
       session,
       loading,
+      recovery,
       signIn,
       signUp,
       signInWithGoogle,

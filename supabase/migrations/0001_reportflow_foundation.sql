@@ -29,6 +29,9 @@ create table if not exists public.organizations (
   constraint organizations_domain_format check (
     company_domain is null
     or company_domain ~ '^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$'
+  ),
+  constraint organizations_auto_join_needs_domain check (
+    not domain_auto_join or company_domain is not null
   )
 );
 
@@ -86,6 +89,7 @@ create unique index if not exists invites_pending_unique
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at = now();
@@ -466,12 +470,26 @@ create policy subs_select_member
   to authenticated
   using (organization_id in (select public.user_org_ids()));
 
+revoke all on table public.profiles from public, anon;
+revoke all on table public.organizations from public, anon;
+revoke all on table public.organization_members from public, anon;
+revoke all on table public.invites from public, anon;
+revoke all on table public.subscriptions from public, anon;
+
 grant usage on schema public to anon, authenticated;
 grant select, update on table public.profiles to authenticated;
 grant select, update on table public.organizations to authenticated;
 grant select, delete on table public.organization_members to authenticated;
 grant select, delete on table public.invites to authenticated;
 grant select on table public.subscriptions to authenticated;
+
+revoke all on function public.create_organization(text, text) from public, anon;
+revoke all on function public.create_invite(uuid, text, text) from public, anon;
+revoke all on function public.accept_invite(uuid) from public, anon;
+revoke all on function public.get_invite_preview(uuid) from public;
+revoke all on function public.user_org_ids() from public, anon;
+revoke all on function public.has_org_role(uuid, text[]) from public, anon;
+
 grant execute on function public.create_organization(text, text) to authenticated;
 grant execute on function public.create_invite(uuid, text, text) to authenticated;
 grant execute on function public.accept_invite(uuid) to authenticated;

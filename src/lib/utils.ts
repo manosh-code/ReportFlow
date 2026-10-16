@@ -14,3 +14,10 @@ export function slugPreview(name: string) {
     .replace(/^-|-$/g, "")
     .slice(0, 48);
 }
+
+export function safeAppPath(value: string | null | undefined, fallback = "/dashboard") {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) {
+    return fallback;
+  }
+  return value;
+}

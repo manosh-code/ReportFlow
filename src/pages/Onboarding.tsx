@@ -6,11 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Seo } from "@/components/seo/Seo";
+import { useAuth } from "@/hooks/useAuth";
 import { useOrg } from "@/hooks/useOrg";
 import { slugPreview } from "@/lib/utils";
 
 export function OnboardingPage() {
-  const { createOrg } = useOrg();
+  const { createOrg, memberships } = useOrg();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [domain, setDomain] = useState("");
@@ -75,6 +77,25 @@ export function OnboardingPage() {
             <Button className="w-full" disabled={busy} type="submit">
               Create organization
             </Button>
+            {memberships.length > 0 ? (
+              <Button
+                className="w-full"
+                variant="ghost"
+                type="button"
+                onClick={() => navigate("/dashboard")}
+              >
+                Back to dashboard
+              </Button>
+            ) : (
+              <Button
+                className="w-full"
+                variant="ghost"
+                type="button"
+                onClick={() => signOut().then(() => navigate("/"))}
+              >
+                Sign out
+              </Button>
+            )}
           </form>
         </CardContent>
       </Card>

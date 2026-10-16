@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -7,21 +7,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Seo } from "@/components/seo/Seo";
 import { useAuth } from "@/hooks/useAuth";
+import { safeAppPath } from "@/lib/utils";
 
 export function AuthPage() {
   const { signIn, signUp, signInWithGoogle, resetPassword, configured } =
     useAuth();
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const next = params.get("next") || "/dashboard";
+  const next = safeAppPath(params.get("next"));
+  const invitedEmail = params.get("email") ?? "";
   const [mode, setMode] = useState<"signin" | "signup">(
     params.get("mode") === "signup" ? "signup" : "signin",
   );
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(invitedEmail);
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
   const [forgot, setForgot] = useState(false);
+
+  const heading = useMemo(() => {
+    if (forgot) return "Reset password";
+    return mode === "signup" ? "Create account" : "Sign in";
+  }, [forgot, mode]);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -64,11 +71,11 @@ export function AuthPage() {
         </Link>
         <Card>
           <CardHeader>
-            <CardTitle>{forgot ? "Reset password" : mode === "signup" ? "Create account" : "Sign in"}</CardTitle>
+            <CardTitle>{heading}</CardTitle>
             <CardDescription>
               {forgot
                 ? "We will email a reset link that opens on this app."
-                : "Email and password, or continue with Google."}
+                : "Email and password, or continue with Google (enable the Google provider in Lovable Cloud → Users)."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -80,6 +87,7 @@ export function AuthPage() {
                     id="name"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
+                    autoComplete="name"
                     required
                   />
                 </div>
