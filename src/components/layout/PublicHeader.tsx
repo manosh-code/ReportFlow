@@ -12,6 +12,9 @@ export function PublicHeader() {
           ReportFlow
         </Link>
         <nav className="flex items-center gap-3">
+          <Button variant="ghost" asChild>
+            <Link to="/#pricing">Pricing</Link>
+          </Button>
           {user ? (
             <Button asChild>
               <Link to="/dashboard">Go to dashboard</Link>

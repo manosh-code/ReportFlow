@@ -19,13 +19,13 @@ export function DashboardOverviewPage() {
       </h1>
       <p className="mt-3 max-w-2xl text-muted-foreground">
         Clients and reports land in the next build. This shell is the multi-tenant
-        home: switch orgs, invite the team, and keep billing metadata ready for Stripe.
+        home: switch orgs, invite the team, and upgrade from Settings with Stripe.
       </p>
       <div className="mt-8 grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle>Plan</CardTitle>
-            <CardDescription>Stripe IDs stay empty until checkout ships.</CardDescription>
+            <CardDescription>Live plan from Stripe webhooks.</CardDescription>
           </CardHeader>
           <CardContent>
             <Badge className="capitalize">
@@ -46,7 +46,7 @@ export function DashboardOverviewPage() {
             <CardDescription>Reporting modules share this org context.</CardDescription>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            Clients · Reports · Stripe checkout
+            Clients · Reports
           </CardContent>
         </Card>
       </div>

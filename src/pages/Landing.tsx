@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { PublicHeader } from "@/components/layout/PublicHeader";
 import { Seo } from "@/components/seo/Seo";
 import { useAuth } from "@/hooks/useAuth";
+import { PLANS } from "@/lib/billing";
 import hero from "@/assets/hero.png";
 
 const features = [
@@ -47,8 +48,8 @@ export function LandingPage() {
             </h1>
             <p className="mt-6 max-w-xl text-lg text-muted-foreground">
               ReportFlow is the agency workspace for monthly client reports —
-              one org per team, every client in its place, and a path to
-              Stripe-backed plans when you are ready to charge for seats.
+              one org per team, every client in its place, and Stripe Checkout
+              when you are ready to charge for seats.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button size="lg" asChild>
@@ -85,21 +86,36 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-6 py-20">
-          <div className="rounded-lg border border-border bg-muted/30 px-8 py-12">
-            <h2 className="font-display text-4xl text-paper">
-              Ready when your next retainer is.
-            </h2>
-            <p className="mt-3 max-w-2xl text-muted-foreground">
-              Start on the free plan. Invite the team. Billing for Agency and
-              Enterprise lands next — Stripe checkout and webhooks, not a fake
-              paywall.
-            </p>
-            <Button className="mt-6" asChild>
-              <Link to={user ? "/dashboard" : "/auth?mode=signup"}>
-                {user ? "Go to dashboard" : "Start free"}
-              </Link>
-            </Button>
+        <section id="pricing" className="mx-auto max-w-6xl px-6 py-20">
+          <h2 className="font-display text-4xl text-paper">Pricing</h2>
+          <p className="mt-3 max-w-2xl text-muted-foreground">
+            Start free. Agency and Enterprise charge through Stripe Checkout;
+            cancellations and invoices live in the customer portal.
+          </p>
+          <div className="mt-10 grid gap-4 md:grid-cols-3">
+            {PLANS.map((plan) => (
+              <article
+                key={plan.id}
+                className="flex flex-col rounded-lg border border-border bg-card/40 p-6"
+              >
+                <p className="text-sm uppercase tracking-[0.14em] text-primary">{plan.name}</p>
+                <p className="mt-3 font-display text-5xl text-paper">
+                  {plan.price}
+                  <span className="ml-2 text-base text-muted-foreground">{plan.cadence}</span>
+                </p>
+                <p className="mt-3 text-sm text-muted-foreground">{plan.blurb}</p>
+                <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
+                  {plan.features.map((feature) => (
+                    <li key={feature}>{feature}</li>
+                  ))}
+                </ul>
+                <Button className="mt-8" asChild>
+                  <Link to={user ? "/dashboard/settings" : "/auth?mode=signup"}>
+                    {plan.id === "free" ? "Start free" : "Choose plan"}
+                  </Link>
+                </Button>
+              </article>
+            ))}
           </div>
         </section>
       </main>
