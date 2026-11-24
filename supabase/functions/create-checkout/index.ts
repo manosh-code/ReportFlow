@@ -1,6 +1,7 @@
 import { json, optionsResponse } from "../_shared/cors.ts";
 import { getStripe, isPaidPlan, priceIdForPlan } from "../_shared/stripe.ts";
 import { requireBillingAdmin, requireUser } from "../_shared/supabase.ts";
+import { CheckoutConflict, checkoutUrl } from "./session.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return optionsResponse();
@@ -19,69 +20,49 @@ Deno.serve(async (req) => {
       return json({ error: "plan must be agency or enterprise" }, 400);
     }
 
-    const { admin, subscription, organization } = await requireBillingAdmin(
-      organizationId,
-      user.id,
-    );
-
-    const paidAndCurrent =
-      Boolean(subscription.stripe_subscription_id) &&
-      (subscription.status === "active" ||
-        subscription.status === "trialing" ||
-        subscription.status === "past_due");
-
-    if (paidAndCurrent) {
-      return json(
-        { error: "This organization already has a subscription. Use the billing portal." },
-        409,
-      );
-    }
-
-    const stripe = getStripe();
-    let customerId = subscription.stripe_customer_id as string | null;
-
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email ?? undefined,
-        name: organization.name,
-        metadata: {
-          organization_id: organizationId,
-          user_id: user.id,
-        },
-      });
-      customerId = customer.id;
-      const { error } = await admin
-        .from("subscriptions")
-        .update({ stripe_customer_id: customerId })
-        .eq("organization_id", organizationId);
-      if (error) throw error;
-    }
-
-    const origin =
-      req.headers.get("origin") ??
-      Deno.env.get("SITE_URL") ??
-      "http://localhost:5173";
-
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      mode: "subscription",
-      billing_address_collection: "auto",
-      allow_promotion_codes: true,
-      client_reference_id: organizationId,
-      line_items: [{ price: priceIdForPlan(plan), quantity: 1 }],
-      success_url: `${origin}/dashboard/settings?billing=success`,
-      cancel_url: `${origin}/dashboard/settings?billing=canceled`,
-      metadata: { organization_id: organizationId, plan },
-      subscription_data: {
-        metadata: { organization_id: organizationId, plan },
+    const { admin, organization } = await requireBillingAdmin(organizationId, user.id);
+    const origin = Deno.env.get("SITE_URL") ?? req.headers.get("origin") ?? "http://localhost:5173";
+    const price = priceIdForPlan(plan);
+    const url = await checkoutUrl(getStripe(), {
+      async reserve(replace) {
+        const { data, error } = await admin.rpc("reserve_billing_checkout", {
+          p_org: organizationId,
+          p_plan: plan,
+          p_price: price,
+          p_origin: origin,
+          p_email: user.email ?? null,
+          p_name: organization.name,
+          p_user: user.id,
+          p_replace: replace ?? null,
+        });
+        if (error) throw error;
+        if (data.blocked) {
+          throw new CheckoutConflict(
+            "This organization already has a subscription. Use the billing portal.",
+          );
+        }
+        return data;
       },
-    });
-
-    if (!session.url) return json({ error: "Stripe did not return a checkout URL" }, 500);
-    return json({ url: session.url });
+      async bindCustomer(id) {
+        const { error } = await admin.from("subscriptions").update({ stripe_customer_id: id })
+          .eq("organization_id", organizationId).is("stripe_customer_id", null);
+        if (error) throw error;
+        const { data, error: readError } = await admin.from("subscriptions").select("stripe_customer_id")
+          .eq("organization_id", organizationId).single();
+        if (readError) throw readError;
+        if (!data.stripe_customer_id) throw new Error("Stripe customer binding failed");
+        return data.stripe_customer_id;
+      },
+      async saveSession(attempt, session) {
+        const { error } = await admin.from("billing_checkout_attempts").update({ session_id: session })
+          .eq("id", attempt).eq("organization_id", organizationId).select("id").single();
+        if (error) throw error;
+      },
+    }, plan);
+    return json({ url });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Checkout failed";
-    const status = message === "Not authenticated" ? 401 : 400;
+    const status = err instanceof CheckoutConflict ? 409 : message === "Not authenticated" ? 401 : 400;
     return json({ error: message }, status);
   }
 });

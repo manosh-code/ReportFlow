@@ -1,11 +1,13 @@
-import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
+import Stripe from "npm:stripe@14.21.0";
+
+export default Stripe;
 
 export type PaidPlan = "agency" | "enterprise";
 
 export function getStripe(): Stripe {
   const key = Deno.env.get("STRIPE_SECRET_KEY");
   if (!key) throw new Error("STRIPE_SECRET_KEY is not set");
-  return new Stripe(key, { apiVersion: "2023-10-16" });
+  return new Stripe(key, { apiVersion: "2023-10-16", httpClient: Stripe.createFetchHttpClient() });
 }
 
 export function priceIdForPlan(plan: PaidPlan): string {
